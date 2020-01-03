@@ -1,0 +1,30 @@
+#!/bin/bash
+#
+# Wrapper script for local CheckmK checks to be read 
+# by NRPE. Written somewhere 2015/2016 in an attempt to move
+# from Nagios to CheckMK and not wanting to write any new
+# NRPE checks. So probably not too usefull for anyone, but
+# hey, here it is. ;-)
+#
+# Author: Michel Hoogervorst <michel@highking.nl>
+#
+if [ "$1" == "" ]; then
+  echo "ERROR: Expecting Check_MK local check name
+
+  Example: $0 mysqlmaster"
+  exit 1
+fi
+
+if [ -f /usr/lib/check_mk_agent/local/$1 ]; then
+  command=$(/usr/lib/check_mk_agent/local/$1);
+  while read status name perfdata detail; do
+    echo $detail;
+    exit $status
+  done<<<"$command"  
+else
+  echo "ERROR: Plugin $1 NOT found in /usr/lib/check_mk_agent/local/"
+  exit 3
+fi
+
+echo "Auch, something must be wrong... you should NEVER see this line!"
+exit 3
