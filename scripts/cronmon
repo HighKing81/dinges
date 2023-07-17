@@ -2,7 +2,7 @@
 #
 # Name: cronmon
 # Version: 0.3
-# Author: Michel Hoogervorst <m.hoogervorst@uniserver.nl>
+# Author: Michel Hoogervorst <michel@highking.nl>
 #
 # This script deamonizes after start, then tails the cron-log (/var/log/cron) and traces all cronjobs with
 # strace to check how long the job has been running. The result is logged to syslog using the logger command.
