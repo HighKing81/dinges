@@ -1,0 +1,51 @@
+#!/bin/bash
+#
+# Name: cronmon
+# Version: 0.3
+# Author: Michel Hoogervorst <m.hoogervorst@uniserver.nl>
+#
+# This script deamonizes after start, then tails the cron-log (/var/log/cron) and traces all cronjobs with
+# strace to check how long the job has been running. The result is logged to syslog using the logger command.
+#
+# Requirements:
+# - strace for tracing cronjobs
+# - logger for logging the result to syslog
+# - tail for, well, tailing the log :-)
+# - bash to start the script 
+#
+
+tracepid() {
+  pid=$1;
+
+  # Trace the pid until it's finised and put the output in the croninfo-variable
+  jobinfo=$(strace -p $pid -qc 2>&1);
+
+  # Check if the pid was traced at all, else stop here
+  if [[ ! $jobinfo == *PTRACE_ATTACH* ]]; then
+
+    # Fetch the seconds from the strace-output
+    echo "$jobinfo" | grep total | while read perc secs rest; do
+      logger -t ${0##*/} "Job $pid has ended and has run for $secs seconds"
+    done
+
+  fi
+}
+
+echo -n "Daemonizing ${0##*/}..."
+# Daemonize and tail the cron log
+(
+while true; do
+  # This is what an entry in the cron-log looks like:
+  # Apr 11 12:20:01 webserver CROND[7758]: (root) CMD (/usr/local/maldetect/maldet --mkpubpaths >> /dev/null 2>&1)
+  # 
+  # We need to extract the pid from the 'CROND[7758]:'-field:
+  tail -F /var/log/cron | while read month date time server app user cmdfield cmd; do
+    if [ "$cmdfield" == "CMD" ]; then
+      pid=${app##*[} && pid=${pid%%]*}
+      tracepid $pid &
+    fi
+  done
+done
+) </dev/null >/dev/null 2>&1 &
+disown
+echo " done"
